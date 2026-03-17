@@ -1,0 +1,10 @@
+__pycache__/
+.swival
+.venv
+*.egg-info
+*.py[oc]
+*~
+build/
+dist/
+tmp
+wheels/
