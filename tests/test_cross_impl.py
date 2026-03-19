@@ -55,7 +55,7 @@ def _run_js_encrypt():
         if result.returncode != 0:
             pytest.skip(f"JS implementation not available: {result.stderr}")
         return json.loads(result.stdout)
-    except FileNotFoundError, subprocess.TimeoutExpired:
+    except (FileNotFoundError, subprocess.TimeoutExpired):
         pytest.skip("Node.js not available")
 
 
@@ -83,7 +83,7 @@ class TestCrossImplementation:
         enc = TokenEncryptor(KEY)
 
         for name, token in CROSS_IMPL_TOKENS:
-            py_encrypted = enc.encrypt(token)
+            py_encrypted, _ = enc.encrypt(token)
             js_encrypted = js_results[name]["encrypted"]
             assert py_encrypted == js_encrypted, (
                 f"Ciphertext mismatch for {name}: "

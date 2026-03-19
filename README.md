@@ -43,8 +43,12 @@ AWS access key: AKIAIOSFODNN7EXAMPLE
 Stripe key: sk_live_ABCDEFGHIJKLMNOPQRSTUVWXab
 """
 
-encrypted = encryptor.encrypt(text)
+encrypted, mappings = encryptor.encrypt(text)
 ```
+
+`encrypt()` returns a tuple: the encrypted text and a list of `TokenMapping` objects that record
+which tokens were found and what they became. Each mapping has `plaintext`, `ciphertext`, and
+`pattern_name` fields, which is useful for provenance tracking (only reversing tokens you actually encrypted).
 
 For prefix-based tokens the result still looks like valid tokens: same prefixes, same lengths, same
 character sets, but the secret parts have been replaced with ciphertext. Decryption restores the original
@@ -62,8 +66,8 @@ The same plaintext encrypted with different tweaks produces different ciphertext
 which is useful for binding tokens to a specific user, session, or tenant:
 
 ```python
-enc_alice = encryptor.encrypt(text, tweak=b"user-alice")
-enc_bob = encryptor.encrypt(text, tweak=b"user-bob")
+enc_alice, _ = encryptor.encrypt(text, tweak=b"user-alice")
+enc_bob, _ = encryptor.encrypt(text, tweak=b"user-bob")
 
 assert enc_alice != enc_bob
 
@@ -80,7 +84,7 @@ pass a `types` list with the pattern names you care about:
 ```python
 text = "ghp_ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghij and AKIAIOSFODNN7EXAMPLE"
 
-encrypted = encryptor.encrypt(text, types=["github-pat"])
+encrypted, _ = encryptor.encrypt(text, types=["github-pat"])
 # The GitHub token is encrypted, but the AWS key is untouched
 ```
 
@@ -134,7 +138,7 @@ encryptor = TokenEncryptor(key)
 encryptor.register(my_pattern)
 
 text = "key: myapp_ABCDEFGHIJKLMNOPQRSTUVWXYZabcdef"
-encrypted = encryptor.encrypt(text)
+encrypted, _ = encryptor.encrypt(text)
 decrypted = encryptor.decrypt(encrypted)
 assert decrypted == text
 ```

@@ -48,3 +48,12 @@ class TokenSpan:
     end: int
     pattern: TokenPattern
     body: str
+
+
+@dataclass(frozen=True)
+class TokenMapping:
+    """A single plaintext-to-ciphertext token mapping produced by encrypt()."""
+
+    plaintext: str
+    ciphertext: str
+    pattern_name: str

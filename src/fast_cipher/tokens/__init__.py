@@ -17,7 +17,12 @@ from .alphabets import (
 from .registry import BUILTIN_PATTERNS, MIN_SEGMENT_LENGTH
 from .scanner import scan
 from .transformer import transform_body
-from .types import HeuristicTokenPattern, TokenPattern, TokenSpan
+from .types import HeuristicTokenPattern, TokenMapping, TokenPattern, TokenSpan
+
+_INHERIT = object()
+
+NO_TWEAK = object()
+"""Sentinel: pass as tweak= to explicitly disable tweaking, ignoring the constructor default."""
 
 
 def _heuristic_marker(pattern_name: str) -> str:
@@ -34,10 +39,16 @@ def _make_tweak(pattern_name: str, extra: bytes | None = None) -> bytes:
 class TokenEncryptor:
     """Format-preserving encryption for API tokens and secrets."""
 
-    def __init__(self, key: bytes) -> None:
+    def __init__(self, key: bytes, *, tweak: bytes | None = None) -> None:
         if len(key) not in (16, 24, 32):
             raise ValueError("Key must be 16, 24, or 32 bytes")
+        if tweak is NO_TWEAK:
+            raise ValueError(
+                "NO_TWEAK is not valid for the constructor; "
+                "use tweak=None (the default) or pass NO_TWEAK to encrypt()/decrypt()"
+            )
         self._key = bytes(key)
+        self._default_tweak = tweak
         self._cache: dict[tuple[int, int], FastCipher] = {}
         self._patterns: list[TokenPattern] = list(BUILTIN_PATTERNS)
         self._destroyed = False
@@ -55,6 +66,13 @@ class TokenEncryptor:
             self._cache[k] = cipher
         return cipher
 
+    def _resolve_tweak(self, tweak: object) -> bytes | None:
+        if tweak is _INHERIT:
+            return self._default_tweak
+        if tweak is NO_TWEAK:
+            return None
+        return tweak  # type: ignore[return-value]
+
     def _active_patterns(self, types: list[str] | None = None) -> list[TokenPattern]:
         if not types:
             return self._patterns
@@ -66,38 +84,62 @@ class TokenEncryptor:
         text: str,
         *,
         types: list[str] | None = None,
-        tweak: bytes | None = None,
-    ) -> str:
+        tweak: bytes | object = _INHERIT,
+    ) -> tuple[str, list[TokenMapping]]:
+        """Encrypt tokens in text and return provenance mappings.
+
+        Returns (encrypted_text, mappings) where mappings contains one entry
+        per distinct token that was transformed, deduplicated by
+        (ciphertext, pattern_name).
+        """
         self._assert_alive()
+        effective_tweak = self._resolve_tweak(tweak)
         patterns = self._active_patterns(types)
         spans = scan(text, patterns, self._patterns)
         if not spans:
-            return text
+            return text, []
 
         parts: list[str] = []
+        seen: set[tuple[str, str]] = set()
+        mappings: list[TokenMapping] = []
         cursor = 0
         for span in spans:
             parts.append(text[cursor : span.start])
-            parts.append(self._transform_span(span, tweak, "encrypt"))
+            plaintext_token = text[span.start : span.end]
+            ciphertext_token = self._transform_span(span, effective_tweak, "encrypt")
+            parts.append(ciphertext_token)
+            dedup_key = (ciphertext_token, span.pattern.name)
+            if dedup_key not in seen:
+                seen.add(dedup_key)
+                mappings.append(
+                    TokenMapping(
+                        plaintext=plaintext_token,
+                        ciphertext=ciphertext_token,
+                        pattern_name=span.pattern.name,
+                    )
+                )
             cursor = span.end
         parts.append(text[cursor:])
-        return "".join(parts)
+        return "".join(parts), mappings
 
     def decrypt(
         self,
         text: str,
         *,
         types: list[str] | None = None,
-        tweak: bytes | None = None,
+        tweak: bytes | object = _INHERIT,
     ) -> str:
         self._assert_alive()
+        effective_tweak = self._resolve_tweak(tweak)
         patterns = self._active_patterns(types)
 
         # First pass: decrypt heuristic markers
         heuristic_patterns = [p for p in patterns if p.kind == "heuristic"]
         result = text
         if heuristic_patterns:
-            result = self._decrypt_heuristic_markers(result, heuristic_patterns, tweak)
+            result = self._decrypt_heuristic_markers(
+                result, heuristic_patterns, effective_tweak
+            )
 
         # Second pass: decrypt prefix-based tokens
         prefix_patterns = [p for p in patterns if p.kind != "heuristic"]
@@ -112,7 +154,7 @@ class TokenEncryptor:
         cursor = 0
         for span in spans:
             parts.append(result[cursor : span.start])
-            parts.append(self._transform_span(span, tweak, "decrypt"))
+            parts.append(self._transform_span(span, effective_tweak, "decrypt"))
             cursor = span.end
         parts.append(result[cursor:])
         return "".join(parts)
@@ -244,6 +286,8 @@ __all__ = [
     "DIGITS",
     "HEX_LOWER",
     "Alphabet",
+    "NO_TWEAK",
     "TokenEncryptor",
+    "TokenMapping",
     "TokenPattern",
 ]

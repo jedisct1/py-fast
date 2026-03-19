@@ -1,6 +1,6 @@
 [project]
 name = "fast-cipher"
-version = "0.1.1"
+version = "0.2.0"
 description = "FAST format-preserving encryption cipher in pure Python"
 readme = "README.md"
 requires-python = ">=3.10"
