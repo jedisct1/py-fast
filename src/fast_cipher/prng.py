@@ -2,18 +2,16 @@ from __future__ import annotations
 
 import struct
 
-from cryptography.hazmat.primitives.ciphers import Cipher
-from cryptography.hazmat.primitives.ciphers.algorithms import AES
-from cryptography.hazmat.primitives.ciphers.modes import ECB
+from fast_cipher.aes import AesEncryptor
 
 AES_BLOCK_SIZE = 16
 
 
 class PrngState:
-    """AES-128 ECB counter-mode PRNG matching C/Zig/JS reference implementations."""
+    """AES-128 counter-mode PRNG matching C/Zig/JS reference implementations."""
 
     def __init__(self, key: bytes, nonce: bytes) -> None:
-        self._encryptor = Cipher(AES(key), ECB()).encryptor()
+        self._encryptor = AesEncryptor(key)
         self._counter = bytearray(nonce)
         self._buffer = bytearray(AES_BLOCK_SIZE)
         self._buffer_pos = AES_BLOCK_SIZE  # force refill on first use
@@ -25,7 +23,7 @@ class PrngState:
                 break
 
     def _encrypt_block(self) -> None:
-        self._buffer[:] = self._encryptor.update(self._counter)
+        self._buffer[:] = self._encryptor.encrypt_block(self._counter)
 
     def get_bytes(self, n: int) -> bytes:
         output = bytearray(n)

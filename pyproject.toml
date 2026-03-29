@@ -1,12 +1,10 @@
 [project]
 name = "fast-cipher"
-version = "0.2.0"
+version = "0.2.1"
 description = "FAST format-preserving encryption cipher in pure Python"
 readme = "README.md"
 requires-python = ">=3.10"
-dependencies = [
-    "cryptography>=46.0.5",
-]
+dependencies = []
 
 [project.optional-dependencies]
 dev = ["pytest>=9.0.2"]

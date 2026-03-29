@@ -2,9 +2,7 @@ from __future__ import annotations
 
 import struct
 
-from cryptography.hazmat.primitives.ciphers import Cipher
-from cryptography.hazmat.primitives.ciphers.algorithms import AES
-from cryptography.hazmat.primitives.ciphers.modes import ECB
+from fast_cipher.aes import AesEncryptor
 
 AES_BLOCK_SIZE = 16
 CMAC_RB = 0x87
@@ -22,9 +20,9 @@ def _left_shift_and_xor(data: bytes, xor_byte: int) -> bytes:
 
 
 def aes_cmac(key: bytes, message: bytes) -> bytes:
-    enc = Cipher(AES(key), ECB()).encryptor()
+    aes = AesEncryptor(key)
 
-    L = enc.update(b"\x00" * AES_BLOCK_SIZE)
+    L = aes.encrypt_block(b"\x00" * AES_BLOCK_SIZE)
     k1 = _left_shift_and_xor(L, CMAC_RB)
     k2 = _left_shift_and_xor(k1, CMAC_RB)
 
@@ -49,12 +47,12 @@ def aes_cmac(key: bytes, message: bytes) -> bytes:
         offset = block_index * AES_BLOCK_SIZE
         for i in range(AES_BLOCK_SIZE):
             state[i] ^= message[offset + i]
-        state[:] = enc.update(state)
+        state[:] = aes.encrypt_block(state)
 
     for i in range(AES_BLOCK_SIZE):
         state[i] ^= last_block[i]
 
-    return enc.update(state)
+    return aes.encrypt_block(state)
 
 
 def derive_key(
