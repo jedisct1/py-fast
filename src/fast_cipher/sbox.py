@@ -17,8 +17,8 @@ def generate_sbox(radix: int, prng: PrngState) -> SBox:
         j = prng.uniform(i + 1)
         perm[i], perm[j] = perm[j], perm[i]
     inv = [0] * radix
-    for i in range(radix):
-        inv[perm[i]] = i
+    for i, value in enumerate(perm):
+        inv[value] = i
     return SBox(perm=perm, inv=inv)
 
 

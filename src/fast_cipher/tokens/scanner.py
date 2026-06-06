@@ -36,6 +36,14 @@ def _get_body_validator(pattern: SimpleTokenPattern) -> re.Pattern[str]:
     return _body_validator_cache[key]
 
 
+def _is_valid_simple_body(
+    pattern: SimpleTokenPattern,
+    validator: re.Pattern[str],
+    body: str,
+) -> bool:
+    return len(body) >= pattern.min_body_length and validator.match(body) is not None
+
+
 def _would_match_at(
     text: str,
     pos: int,
@@ -82,9 +90,7 @@ def _would_match_simple_at(
     validator = _get_body_validator(pattern)
 
     def validate(body: str) -> bool:
-        return (
-            len(body) >= pattern.min_body_length and validator.match(body) is not None
-        )
+        return _is_valid_simple_body(pattern, validator, body)
 
     trunc_end = _find_truncated_end(
         text, body_start, body_end, prefix_positions, all_patterns, validate
@@ -147,8 +153,7 @@ def _find_truncated_end(
     if not prefixes_in_body:
         return -1
 
-    for j in range(len(prefixes_in_body) - 1, -1, -1):
-        split_pos = prefixes_in_body[j]
+    for split_pos in reversed(prefixes_in_body):
         left_body = text[body_start:split_pos]
         if not validate_left(left_body):
             continue
@@ -209,9 +214,7 @@ def _scan_simple(
     validator = _get_body_validator(pattern)
 
     def validate(body: str) -> bool:
-        return (
-            len(body) >= pattern.min_body_length and validator.match(body) is not None
-        )
+        return _is_valid_simple_body(pattern, validator, body)
 
     for pos in _find_all_positions(text, pattern.prefix):
         if not _is_word_boundary(text, pos):
