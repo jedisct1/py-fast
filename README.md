@@ -1,6 +1,6 @@
 # FAST format-preserving cipher for Python
 
-A pure Python implementation of the [FAST cipher](https://github.com/jedisct1/fast),
+A pure Python implementation of the [FAST cipher](https://github.com/jedisct1/c-fast),
 a format-preserving encryption (FPE) scheme designed for tokenizing API keys, credentials, and other structured secrets.
 
 For prefix-based tokens (GitHub, AWS, Stripe, etc.), encrypted output keeps the exact same format
@@ -10,7 +10,7 @@ Heuristic tokens (Fastly, AWS secret keys) are wrapped in a tagged marker since 
 Fully interoperable with the [C](https://github.com/jedisct1/c-fast),
 [Zig](https://github.com/jedisct1/zig-fast),
 [Go](https://github.com/jedisct1/go-fast), and
-[JavaScript](https://github.com/nickvdyck/js-fast) implementations.
+[JavaScript](https://github.com/jedisct1/js-fast) implementations.
 
 ## Installation
 
