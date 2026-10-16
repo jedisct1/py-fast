@@ -44,6 +44,19 @@ def _alphabet_runs(chars: str) -> re.Pattern[str]:
     return re.compile(_char_class(chars) + "+")
 
 
+@lru_cache(maxsize=256)
+def _heuristic_words(chars: str, min_length: int) -> re.Pattern[str]:
+    """Match whole words made of `chars`, at least `min_length` long.
+
+    Most words are shorter, and skipping them here is much faster.
+    """
+    if not chars:
+        return _NEVER
+    neighbor = _char_class(set(chars) | _WORD_CHARS)
+    body = _char_class(chars) + "{%d,}" % max(min_length, 1)
+    return re.compile(f"(?<!{neighbor}){body}(?!{neighbor})")
+
+
 class _RunEnds:
     """Find where runs of alphabet characters end.
 
@@ -338,17 +351,12 @@ def _scan_heuristic(
     pattern: HeuristicTokenPattern,
     candidates: list[_Candidate],
 ) -> None:
-    for m in _alphabet_runs(pattern.body_alphabet.chars).finditer(text):
-        start, end = m.span()
-        if start > 0 and text[start - 1] in _WORD_CHARS:
-            continue
-        if not pattern.min_length <= end - start <= pattern.max_length:
-            continue
-        if end < len(text) and text[end] in _WORD_CHARS:
-            continue
+    words = _heuristic_words(pattern.body_alphabet.chars, pattern.min_length)
+    for m in words.finditer(text):
         body = m.group()
         if (
-            _count_char_classes(body) >= pattern.min_char_classes
+            len(body) <= pattern.max_length
+            and _count_char_classes(body) >= pattern.min_char_classes
             and shannon_entropy(body) >= pattern.min_entropy
         ):
-            candidates.append((start, end, pattern))
+            candidates.append((m.start(), m.end(), pattern))

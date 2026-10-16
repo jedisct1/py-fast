@@ -40,6 +40,7 @@ class Fixture:
 
 
 AWS_KEY = SAMPLE_TOKENS["aws-access-key"]
+AWS_SECRET = "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
 AWS = Fixture("aws-access-key", "AKIA", AWS_KEY)
 SENDGRID = Fixture("sendgrid", "SG.", SAMPLE_TOKENS["sendgrid"])
 GITLAB = Fixture("gitlab", "glpat-", decode_secret("tycng-No1-_No1-_No1-_No1-_"))
@@ -90,6 +91,8 @@ INNER = custom("a-", "[0-9]{2}", DIGITS, 2, name="inner")
 @pytest.mark.parametrize(
     "patterns,text,expected",
     [
+        # Heuristic tokens must be whole words.
+        (BUILTIN_PATTERNS, f"_{AWS_SECRET} {AWS_SECRET}_", []),
         # Slack IDs only use ASCII digits.
         (BUILTIN_PATTERNS, "xoxb-" + "\u0663" * 12 + "-1234567890123-abcdefghij", []),
         # The last AWS key ends the Vercel body, even if an earlier one would
