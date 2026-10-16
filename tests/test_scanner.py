@@ -154,6 +154,12 @@ def test_custom_structured_patterns():
     )
     assert find("ab CD", [caps]) == ["caps@3-5:CD"]
 
+    # \d only matches ASCII digits.
+    order = StructuredTokenPattern(
+        "order", "ord_", r"ord_\d{4}", DIGITS, whole_body(DIGITS), "".join
+    )
+    assert find("ord_1234 ord_" + "\u0663" * 4, [order]) == ["order@0-8:1234"]
+
 
 @pytest.mark.parametrize(
     "pattern,valid,invalid",

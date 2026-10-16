@@ -12,6 +12,11 @@ _CHARACTER_CLASS_WITH_LENGTH = re.compile(
 )
 
 
+def _compile(regex: str) -> re.Pattern[str]:
+    # As in JavaScript, \d and \w only match ASCII characters.
+    return re.compile(regex, re.ASCII)
+
+
 def _length_bounds(
     body_regex: str, alphabet: Alphabet, min_body_length: int
 ) -> tuple[int, int] | None:
@@ -25,7 +30,7 @@ def _length_bounds(
     m = _CHARACTER_CLASS_WITH_LENGTH.fullmatch(body_regex)
     if m is None:
         return None
-    char_class = re.compile(m[1])
+    char_class = _compile(m[1])
     if not all(char_class.fullmatch(ch) for ch in alphabet.chars):
         return None
     low = int(m[2])
@@ -49,7 +54,7 @@ class SimpleTokenPattern:
     )
 
     def __post_init__(self) -> None:
-        object.__setattr__(self, "_body_validator", re.compile(self.body_regex))
+        object.__setattr__(self, "_body_validator", _compile(self.body_regex))
         object.__setattr__(
             self,
             "_length_bounds",
@@ -78,7 +83,7 @@ class StructuredTokenPattern:
     _regex: re.Pattern[str] = field(init=False, repr=False, compare=False)
 
     def __post_init__(self) -> None:
-        object.__setattr__(self, "_regex", re.compile(self.full_regex))
+        object.__setattr__(self, "_regex", _compile(self.full_regex))
 
 
 @dataclass(frozen=True)
