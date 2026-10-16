@@ -49,7 +49,12 @@ SLACK_USER = Fixture(
     "xoxp-",
     decode_secret("kbkc-123456789012-1234567890123-NOPQRSTUVWXYZABCDEFGHIJKno"),
 )
-SLACK = [SLACK_BOT, SLACK_USER]
+SLACK_USER_THREE_IDS = Fixture(
+    "slack-user",
+    "xoxp-",
+    decode_secret("kbkc-1234567890-9876543210-2468013579-NoPqRsTuVwXyZaBcDeFgHiJk"),
+)
+SLACK = [SLACK_BOT, SLACK_USER, SLACK_USER_THREE_IDS]
 
 ENCRYPTOR = TokenEncryptor(KEY)
 
@@ -85,6 +90,8 @@ INNER = custom("a-", "[0-9]{2}", DIGITS, 2, name="inner")
 @pytest.mark.parametrize(
     "patterns,text,expected",
     [
+        # Slack IDs only use ASCII digits.
+        (BUILTIN_PATTERNS, "xoxb-" + "\u0663" * 12 + "-1234567890123-abcdefghij", []),
         # The last AWS key ends the Vercel body, even if an earlier one would
         # give a shorter token.
         (

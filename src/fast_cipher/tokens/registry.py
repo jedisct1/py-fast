@@ -56,24 +56,23 @@ def _heuristic(
     )
 
 
-def _make_slack_pattern(prefix: str, name: str) -> StructuredTokenPattern:
-    escaped = re.escape(prefix)
+def _make_slack_pattern(
+    prefix: str, name: str, allow_user_id: bool = False
+) -> StructuredTokenPattern:
+    # Python's \d also matches non-ASCII digits, so spell the class out.
+    if allow_user_id:
+        body_regex = "[0-9]+-[0-9]+-(?:[0-9]+-)?[A-Za-z0-9]+"
+    else:
+        body_regex = "[0-9]+-[0-9]+-[A-Za-z0-9]+"
+    body_validator = re.compile(body_regex)
 
     def parse(body: str) -> dict | None:
+        if body_validator.fullmatch(body) is None:
+            return None
         parts = body.split("-")
-        if len(parts) < 3:
+        if sum(len(p) for p in parts) < 20:
             return None
-        total_len = sum(len(p) for p in parts)
-        if total_len < 20:
-            return None
-        alphabets: list[Alphabet] = []
-        for part in parts:
-            if re.fullmatch(r"\d+", part):
-                alphabets.append(DIGITS)
-            elif re.fullmatch(r"[A-Za-z0-9]+", part):
-                alphabets.append(ALPHANUMERIC)
-            else:
-                return None
+        alphabets = [DIGITS if part.isdigit() else ALPHANUMERIC for part in parts]
         return {"segments": parts, "alphabets": alphabets}
 
     def format_fn(segments: list[str]) -> str:
@@ -82,7 +81,7 @@ def _make_slack_pattern(prefix: str, name: str) -> StructuredTokenPattern:
     return StructuredTokenPattern(
         name=name,
         prefix=prefix,
-        full_regex=f"{escaped}\\d+-\\d+-[A-Za-z0-9]+",
+        full_regex=re.escape(prefix) + body_regex,
         trailing_alphabet=ALPHANUMERIC,
         parse=parse,
         format=format_fn,
@@ -136,7 +135,7 @@ BUILTIN_PATTERNS: list[TokenPattern] = [
     _simple("pypi", "pypi-", "[A-Za-z0-9_-]{50,}", BASE64URL, 50),
     # Slack (5-char prefix, structured)
     _make_slack_pattern("xoxb-", "slack-bot"),
-    _make_slack_pattern("xoxp-", "slack-user"),
+    _make_slack_pattern("xoxp-", "slack-user", allow_user_id=True),
     # GitHub (4-char prefix)
     _simple("github-pat", "ghp_", "[A-Za-z0-9]{36}", ALPHANUMERIC, 36),
     _simple("github-oauth", "gho_", "[A-Za-z0-9]{36}", ALPHANUMERIC, 36),
