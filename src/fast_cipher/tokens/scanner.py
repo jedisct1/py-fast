@@ -4,8 +4,8 @@ import math
 import re
 import string
 from bisect import bisect_right
+from collections.abc import Callable
 from functools import lru_cache
-from typing import Callable
 
 from .alphabets import Alphabet
 from .types import (
@@ -53,7 +53,7 @@ def _heuristic_words(chars: str, min_length: int) -> re.Pattern[str]:
     if not chars:
         return _NEVER
     neighbor = _char_class(set(chars) | _WORD_CHARS)
-    body = _char_class(chars) + "{%d,}" % max(min_length, 1)
+    body = f"{_char_class(chars)}{{{max(min_length, 1)},}}"
     return re.compile(f"(?<!{neighbor}){body}(?!{neighbor})")
 
 
@@ -64,7 +64,7 @@ class _RunEnds:
     reads each character only once.
     """
 
-    __slots__ = ("_text", "_runs", "_start", "_end")
+    __slots__ = ("_end", "_runs", "_start", "_text")
 
     def __init__(self, text: str, alphabet: Alphabet) -> None:
         self._text = text

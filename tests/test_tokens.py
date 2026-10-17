@@ -112,7 +112,7 @@ class TestMappings:
         """The primary use case: build a registry from mappings, reverse only known tokens."""
         token = SAMPLE_TOKENS["github-pat"]
         text = f"Use this key: {token}"
-        encrypted, mappings = self.enc.encrypt(text)
+        _, mappings = self.enc.encrypt(text)
 
         registry = {m.ciphertext: m.plaintext for m in mappings}
 

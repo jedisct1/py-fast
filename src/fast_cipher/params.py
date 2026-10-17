@@ -129,9 +129,7 @@ def calculate_recommended_params(
     branch_dist1 = max(min(w_candidate, word_length - 2), 0)
     branch_dist2 = max(branch_dist1 - 1, 1)
 
-    rounds = _lookup_recommended_rounds(radix, word_length)
-    if rounds < 1.0:
-        rounds = 1.0
+    rounds = max(_lookup_recommended_rounds(radix, word_length), 1.0)
     rounds_u = math.ceil(rounds)
     num_layers = rounds_u * word_length
 

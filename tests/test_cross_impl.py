@@ -6,6 +6,7 @@ then verify Python can decrypt them (and vice versa).
 """
 
 import json
+import shutil
 import subprocess
 
 import pytest
@@ -48,6 +49,7 @@ def _run_js_encrypt():
         result = subprocess.run(
             ["node", "-e", JS_SCRIPT, KEY_HEX, json.dumps(CROSS_IMPL_TOKENS)],
             capture_output=True,
+            check=False,
             text=True,
             cwd="/Users/j/src/js-fast",
             timeout=30,
@@ -60,7 +62,7 @@ def _run_js_encrypt():
 
 
 @pytest.mark.skipif(
-    not subprocess.run(["which", "node"], capture_output=True).returncode == 0,
+    shutil.which("node") is None,
     reason="Node.js not installed",
 )
 class TestCrossImplementation:

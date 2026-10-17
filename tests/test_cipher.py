@@ -4,7 +4,6 @@ import pytest
 
 from fast_cipher import FastCipher, calculate_recommended_params
 
-
 # Test vectors freshly generated from go-fast (2026-03-17)
 # All use radix=256 (byte-level FPE)
 GO_TEST_VECTORS = [
